@@ -24,15 +24,15 @@ GROUP BY p.[adm1_en],[c].[mga]
 --* Question 6: Calculate the number of sites with an ambulance by commune and by department (ambulance = 1.0).
 SELECT  [p].[adm1_en] as Departement ,[t].[adm2_en] as Commune, COUNT(*) as Number_of_sites FROM [Haiti_Health_Data_Analysis].[dbo].[spa] as c
 INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[Departement]  AS p ON c.[adm1code] = p.[adm1code]
-INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[Commune]  AS t ON t.[adm2code] = c.[adm2code]
+INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[Commune] AS t ON t.[adm2code] = c.[adm2code] 
 WHERE [c].[ambulance] = 1
 GROUP BY p.[adm1_en],[t].[adm2_en]
 ORDER BY [p].[adm1_en]
 
 --* Question 7. Calculate the number of hospitals per 10k inhabitants by department.
-SELECT [adm1_en] as Departement , ROUND((COUNT(p.factype)*10000/([IHSI_UNFPA_2019])),2) as Number_of_hospitals_10k_habitants  FROM [Haiti_Health_Data_Analysis].[dbo].[Departement] AS c
-INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[spa]  AS p ON c.[adm1code] = p.[adm1code]
-INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[Factype]  AS t ON [p].[factype] = [t].[factype]
+SELECT [adm1_en]  Departement , ROUND((COUNT(p.factype)*10000/([IHSI_UNFPA_2019])),2)  Number_of_hospitals_10k_habitants  FROM [Haiti_Health_Data_Analysis].[dbo].[Departement] AS c
+INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[spa]   p ON c.[adm1code] = p.[adm1code]
+INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[Factype]  t ON [p].[factype] = [t].[factype]
 WHERE [t].facdesc_1 = 'HOPITAL'
 GROUP BY [adm1_en],[IHSI_UNFPA_2019]
 
@@ -66,27 +66,38 @@ SELECT * FROM hopital RIGHT JOIN dispensaire on hopital.Commune=dispensaire.Comm
 WHERE hopital.Num_Of_Hop > dispensaire.Num_Of_Dis
 
 --* Question 11 How many  Letality rate per month
-SELECT Datename(m,[document_date]) As Month , Cast(Sum([taux_de_letalite])/Count([taux_de_letalite]) as nvarchar(10)) +' %'  As Letality_Rate From [Haiti_Health_Data_Analysis].[dbo].[Covid_cases]
+SELECT Datename(m,[document_date]) As Month , Cast(Sum([deces])/Sum([cas_confirmes])*100 as nvarchar(20)) + '%'  Letality_Rate From [Haiti_Health_Data_Analysis].[dbo].[Covid_cases]
 Group by Datename(m,[document_date])
 ORDER By Month
 
 --* Question 12 How many Death rate per month
-SELECT Datename(m,[document_date]) As Month , Cast(Sum([taux_de_letalite])/Count([taux_de_letalite]) as nvarchar(10)) +' %'  As Death_Rate From [Haiti_Health_Data_Analysis].[dbo].[Covid_cases]
+SELECT Datename(m,[document_date])  Month , Cast(Sum([deces])/Sum([cas_confirmes])*100 as nvarchar(20)) + '%'  Letality_Rate From [Haiti_Health_Data_Analysis].[dbo].[Covid_cases]
 Group by Datename(m,[document_date])
 ORDER By Month
 
 --* Question 13 How many Prevalence per month
-SELECT Datename(m,[document_date]) As Month , Cast(Sum([c].[cas_confirmes])/Sum([p].[IHSI_UNFPA_2019]) as nvarchar(100)) +' %'  As Prevalence_per_m From [Haiti_Health_Data_Analysis].[dbo].[Covid_cases] AS c 
-INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[Departement] As p ON [c].[adm1code] = [p].adm1code
+SELECT Datename(m,[document_date])  Month , Cast(Sum([c].[cas_confirmes])/Sum([p].[IHSI_UNFPA_2019])*100 as nvarchar(100)) +' %'  As Prevalence_per_m From [Haiti_Health_Data_Analysis].[dbo].[Covid_cases] AS c 
+INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[Departement]  p ON [c].[adm1code] = [p].adm1code
 Group by Datename(m,[document_date])
 ORDER By Month
 
 --* Question 14 How many Prevalence by department
-SELECT	Datename(WK,cast([document_date] as date)) As Month,Cast([m].[adm2_en] as text), Cast([c].[cas_confirmes]/[p].[IHSI_UNFPA_2019] as nvarchar(100)) +' %'  As Prevalence_per_m From [Haiti_Health_Data_Analysis].[dbo].[Covid_cases] AS c 
-INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[Departement] As p ON [c].[adm1code] = [p].adm1code 
-INNeR JOIN [Haiti_Health_Data_Analysis].[dbo].[Commune]  AS m ON [m].[adm1code] = [p].adm1code
-Group by m.[adm2_en],[p].[IHSI_UNFPA_2019],[c].[cas_confirmes],Datename(Wk,cast([document_date] as date))
-ORDER By Prevalence_per_m DESC
+SELECT departement.adm1_en Departement,Cast(ROUND(SUM([cas_confirmes])/SUM([IHSI_UNFPA_2019])*100,10) as nvarchar(20)) +  '%'   Prevalence_Rate 
+FROM [Haiti_Health_Data_Analysis].[dbo].[Covid_Cases] INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[Departement] on departement.adm1code=Covid_Cases.adm1code
+GROUP BY departement.adm1_en  
+ORDER By departement.adm1_en 
 
 
 --* Question 15 What is the variation of the prevalence per week
+SELECT Datename(WK,([document_date]))  Week ,SUM([cas_confirmes])/SUM([IHSI_UNFPA_2019])*100   Prevalence_Rate
+into  #j
+FROM [Haiti_Health_Data_Analysis].[dbo].[Covid_Cases] INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[Departement] on departement.adm1code=Covid_Cases.adm1code
+GROUP BY Datename(WK,([document_date]))
+SELECT 
+	Week,
+	Prevalence_Rate,(Prevalence_Rate - LAG(Prevalence_Rate,1) OVER (
+		ORDER BY Week))/LAG(Prevalence_Rate,1) OVER (
+		ORDER BY Week)*100 Variation
+	 
+FROM #j
+	
