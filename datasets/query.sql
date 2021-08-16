@@ -1,4 +1,4 @@
---SQL Query Valcin Pierry
+--SQL Query
 
 --* Question 2. Calculate the number of health facilities per commune.
 SELECT [adm2_en] ,count(c.factype) AS Number_of_facilities
@@ -89,7 +89,6 @@ ORDER By departement.adm1_en
 
 
 --* Question 15 What is the variation of the prevalence per week
--- C
 SELECT Datename(WK,([document_date]))  Week ,SUM([cas_confirmes])/SUM([IHSI_UNFPA_2019])*100   Prevalence_Rate
 into  #j
 FROM [Haiti_Health_Data_Analysis].[dbo].[Covid_Cases] INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[Departement] on departement.adm1code=Covid_Cases.adm1code
