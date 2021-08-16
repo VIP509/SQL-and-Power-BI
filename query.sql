@@ -17,9 +17,10 @@ FROM [Haiti_Health_Data_Analysis].[dbo].[Commune] as k INNER JOIN [Haiti_Health_
 GROUP BY [k].[adm2_en] ,[v].adm1_en
 
 --* Question 5: Calculate the number of sites by type (mga) and by department.
-SELECT [c].[mga], [p].[adm1_en] as Departement, COUNT(*) as Number_of_sites FROM [Haiti_Health_Data_Analysis].[dbo].[spa] as c
+SELECT z.[mganame] type_of_sites , [p].[adm1_en] as Departement, COUNT(*) as Number_of_sites FROM [Haiti_Health_Data_Analysis].[dbo].[spa] as c
 INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[Departement]  AS p ON c.[adm1code] = p.[adm1code]
-GROUP BY p.[adm1_en],[c].[mga]
+INNER JOIN [Haiti_Health_Data_Analysis].[dbo].[mga]  z ON c.[mga] = z.[index]
+GROUP BY p.[adm1_en],z.[mganame]
 
 --* Question 6: Calculate the number of sites with an ambulance by commune and by department (ambulance = 1.0).
 SELECT  [p].[adm1_en] as Departement ,[t].[adm2_en] as Commune, COUNT(*) as Number_of_sites FROM [Haiti_Health_Data_Analysis].[dbo].[spa] as c
